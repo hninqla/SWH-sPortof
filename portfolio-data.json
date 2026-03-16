@@ -1,0 +1,26 @@
+[
+  { 
+    "title": "Tugas Informatika 1", 
+    "category": "Kelas X", 
+    "desc": "Deskripsi tugas pertama saya di kelas X.", 
+    "imageUrl": "https://picsum.photos/seed/shafdil1/800/600",
+    "targetUrl": "https://google.com",
+    "owner": "Shafdil"
+  },
+  { 
+    "title": "Proyek Web Wawa", 
+    "category": "Kelas XI", 
+    "desc": "Pengembangan website interaktif.", 
+    "imageUrl": "https://picsum.photos/seed/wawa1/800/600",
+    "targetUrl": "https://google.com",
+    "owner": "Wawa"
+  },
+  { 
+    "title": "Desain Hanin", 
+    "category": "Kelas XII", 
+    "desc": "Karya desain grafis akhir tahun.", 
+    "imageUrl": "https://picsum.photos/seed/hanin1/800/600",
+    "targetUrl": "https://google.com",
+    "owner": "Hanin"
+  }
+]
