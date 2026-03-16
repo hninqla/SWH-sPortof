@@ -57,85 +57,82 @@ function getSupabase() {
   return supabaseClient;
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  app.use(express.json());
+app.use(express.json());
 
-  // API Routes
-  app.get("/api/portfolio", async (req, res) => {
-    const supabase = getSupabase();
+// API Routes
+app.get("/api/portfolio", async (req, res) => {
+  const supabase = getSupabase();
+  
+  if (!supabase) {
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    return res.json(data);
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: true });
     
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err: any) {
+    console.error("Supabase fetch error:", err.message);
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    res.json(data);
+  }
+});
+
+app.post("/api/portfolio", async (req, res) => {
+  const { username, password, projects } = req.body;
+  if (username === "admin" && password === "admin123") {
+    const supabase = getSupabase();
+
     if (!supabase) {
-      // Fallback to local file if Supabase is not configured
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-      return res.json(data);
+      fs.writeFileSync(DATA_FILE, JSON.stringify(projects, null, 2));
+      return res.json({ message: "Success (Saved Locally)" });
     }
 
     try {
-      const { data, error } = await supabase
+      const { error: deleteError } = await supabase
         .from("projects")
-        .select("*")
-        .order("created_at", { ascending: true });
-      
-      if (error) throw error;
-      res.json(data || []);
+        .delete()
+        .neq("id", 0);
+
+      if (deleteError) throw deleteError;
+
+      const projectsToInsert = projects.map(({ id, created_at, ...rest }: any) => rest);
+      const { error: insertError } = await supabase
+        .from("projects")
+        .insert(projectsToInsert);
+
+      if (insertError) throw insertError;
+
+      res.json({ message: "Success (Saved to Supabase)" });
     } catch (err: any) {
-      console.error("Supabase fetch error:", err.message);
-      // Fallback to local file on error
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-      res.json(data);
+      console.error("Supabase save error:", err.message);
+      res.status(500).json({ message: "Failed to save to Supabase" });
     }
-  });
+  } else {
+    res.status(401).json({ message: "Unauthorized" });
+  }
+});
 
-  app.post("/api/portfolio", async (req, res) => {
-    const { username, password, projects } = req.body;
-    if (username === "admin" && password === "admin123") {
-      const supabase = getSupabase();
+app.post("/api/login", (req, res) => {
+  const { username, password } = req.body;
+  console.log("Login attempt:", { username, passwordReceived: !!password });
+  if (username === "admin" && password === "admin123") {
+    res.json({ success: true });
+  } else {
+    console.log("Login failed for:", username);
+    res.status(401).json({ success: false });
+  }
+});
 
-      if (!supabase) {
-        // Save to local file if Supabase is not configured
-        fs.writeFileSync(DATA_FILE, JSON.stringify(projects, null, 2));
-        return res.json({ message: "Success (Saved Locally)" });
-      }
-
-      try {
-        // 1. Hapus data lama (sinkronisasi total)
-        const { error: deleteError } = await supabase
-          .from("projects")
-          .delete()
-          .neq("id", 0);
-
-        if (deleteError) throw deleteError;
-
-        // 2. Masukkan data baru
-        const projectsToInsert = projects.map(({ id, created_at, ...rest }: any) => rest);
-        const { error: insertError } = await supabase
-          .from("projects")
-          .insert(projectsToInsert);
-
-        if (insertError) throw insertError;
-
-        res.json({ message: "Success (Saved to Supabase)" });
-      } catch (err: any) {
-        console.error("Supabase save error:", err.message);
-        res.status(500).json({ message: "Failed to save to Supabase" });
-      }
-    } else {
-      res.status(401).json({ message: "Unauthorized" });
-    }
-  });
-
-  app.post("/api/login", (req, res) => {
-    const { username, password } = req.body;
-    if (username === "admin" && password === "admin123") {
-      res.json({ success: true });
-    } else {
-      res.status(401).json({ success: false });
-    }
-  });
-
+async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -149,10 +146,14 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+}
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+if (process.env.NODE_ENV !== "production") {
+  setupVite().then(() => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   });
 }
 
-startServer();
+export default app;
