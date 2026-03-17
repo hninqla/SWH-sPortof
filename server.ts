@@ -62,21 +62,19 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// API Routes
+// --- API Routes (Daftarkan secara langsung agar aktif di Vercel) ---
+
 app.get("/api/portfolio", async (req, res) => {
   const supabase = getSupabase();
-  
   if (!supabase) {
     const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
     return res.json(data);
   }
-
   try {
     const { data, error } = await supabase
       .from("projects")
       .select("*")
       .order("created_at", { ascending: true });
-    
     if (error) throw error;
     res.json(data || []);
   } catch (err: any) {
@@ -88,32 +86,19 @@ app.get("/api/portfolio", async (req, res) => {
 
 app.post("/api/portfolio", async (req, res) => {
   const { username, password, projects } = req.body;
-  if (username === "admin" && password === "admin123") {
+  // Login case-insensitive untuk username
+  if (username?.toLowerCase() === "admin" && password === "admin123") {
     const supabase = getSupabase();
-
     if (!supabase) {
       fs.writeFileSync(DATA_FILE, JSON.stringify(projects, null, 2));
       return res.json({ message: "Success (Saved Locally)" });
     }
-
     try {
-      const { error: deleteError } = await supabase
-        .from("projects")
-        .delete()
-        .neq("id", 0);
-
-      if (deleteError) throw deleteError;
-
+      await supabase.from("projects").delete().neq("id", 0);
       const projectsToInsert = projects.map(({ id, created_at, ...rest }: any) => rest);
-      const { error: insertError } = await supabase
-        .from("projects")
-        .insert(projectsToInsert);
-
-      if (insertError) throw insertError;
-
+      await supabase.from("projects").insert(projectsToInsert);
       res.json({ message: "Success (Saved to Supabase)" });
     } catch (err: any) {
-      console.error("Supabase save error:", err.message);
       res.status(500).json({ message: "Failed to save to Supabase" });
     }
   } else {
@@ -123,14 +108,16 @@ app.post("/api/portfolio", async (req, res) => {
 
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt:", { username, passwordReceived: !!password });
-  if (username === "admin" && password === "admin123") {
+  console.log("Login attempt:", { username });
+  // Gunakan toLowerCase() agar "ADMIN" atau "admin" tetap bisa masuk
+  if (username?.toLowerCase() === "admin" && password === "admin123") {
     res.json({ success: true });
   } else {
-    console.log("Login failed for:", username);
     res.status(401).json({ success: false });
   }
 });
+
+// --- Vite / Static Files Setup ---
 
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
@@ -140,14 +127,19 @@ async function setupVite() {
     });
     app.use(vite.middlewares);
   } else {
+    // Di Vercel, file statis biasanya ditangani oleh Vercel Edge, 
+    // tapi kita tetap siapkan fallback di sini.
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   }
 }
 
+// Hanya jalankan listen jika tidak di Vercel (mode dev)
 if (process.env.NODE_ENV !== "production") {
   setupVite().then(() => {
     app.listen(PORT, "0.0.0.0", () => {

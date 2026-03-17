@@ -19,10 +19,62 @@ import {
   Trash2,
   Save,
   LogOut,
-  Settings
+  Settings,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 // --- Components ---
+
+const AudioPlayer = () => {
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const playAudio = () => {
+      if (audioRef.current && !isPlaying) {
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+        }).catch(err => {
+          console.log("Autoplay blocked, waiting for interaction");
+        });
+      }
+    };
+
+    // Try to play on mount
+    playAudio();
+
+    // Also try on first interaction
+    window.addEventListener('click', playAudio, { once: true });
+    return () => window.removeEventListener('click', playAudio);
+  }, [isPlaying]);
+
+  const toggleMute = () => {
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-8 left-8 z-50">
+      <audio 
+        ref={audioRef}
+        src="https://cdn.pixabay.com/audio/2022/02/22/audio_d0c6ff1bab.mp3" 
+        loop 
+      />
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={toggleMute}
+        className="w-12 h-12 bg-white/80 backdrop-blur-md border border-gold/30 rounded-full flex items-center justify-center text-gold shadow-lg"
+      >
+        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+      </motion.button>
+    </div>
+  );
+};
 
 const Navbar = ({ onAdminClick, isAdmin }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -351,20 +403,42 @@ const Hero = () => {
     <section id="home" className="min-h-screen flex items-center justify-center pt-20 px-6">
       <div className="max-w-7xl mx-auto text-center">
         <motion.div 
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           viewport={{ once: true }}
         >
-          <h2 className="text-gold uppercase tracking-[0.3em] text-sm mb-4 font-medium">Selamat Datang di</h2>
-          <h1 className="text-4xl md:text-6xl heading-serif mb-8 leading-tight">
+          <motion.h2 
+            initial={{ opacity: 0, letterSpacing: "0.5em" }}
+            whileInView={{ opacity: 1, letterSpacing: "0.3em" }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="text-gold uppercase text-sm mb-4 font-medium"
+          >
+            Selamat Datang di
+          </motion.h2>
+          <motion.h1 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.4 }}
+            className="text-4xl md:text-6xl heading-serif mb-8 leading-tight"
+          >
             <span className="heading-script">P</span>ortofolio <br />
             nya <span className="heading-script">K</span>ami
-          </h1>
-          <p className="text-xl text-soft max-w-2xl mx-auto mb-12 leading-relaxed italic">
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.6 }}
+            className="text-xl text-soft max-w-2xl mx-auto mb-12 leading-relaxed italic"
+          >
             "Sebuah Web App yang berisi kumpulan tugas Shafa, Wawa, Hanin"
-          </p>
-          <div className="flex flex-wrap justify-center gap-6">
+          </motion.p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="flex flex-wrap justify-center gap-6"
+          >
             <a 
               href="#portfolio" 
               className="px-10 py-4 bg-soft-brown text-ivory rounded-full text-sm uppercase tracking-widest hover:bg-gold transition-all duration-500 shadow-lg shadow-soft-brown/20"
@@ -377,7 +451,7 @@ const Hero = () => {
             >
               Hubungi Saya
             </a>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
@@ -386,13 +460,13 @@ const Hero = () => {
 
 const About = () => {
   return (
-    <section id="about" className="py-24 bg-beige">
+    <section id="about" className="py-24 bg-beige overflow-hidden">
       <div className="max-w-4xl mx-auto px-6 text-center">
         <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true, margin: "-100px" }}
         >
           <h3 className="text-gold uppercase tracking-[0.3em] text-sm mb-4 font-medium">Tentang Kami</h3>
           <h2 className="text-4xl md:text-5xl heading-serif mb-12 leading-tight">memenuhi tugas melalui desain</h2>
@@ -404,7 +478,12 @@ const About = () => {
               Diharapkan dengan pemenuhan tugas ini dapat menjadikan Kami telah berupaya serta bertanggung jawab semaksimal mungkin atas tanggung jawab tugas kami.
             </p>
           </div>
-          <div className="mt-16 pt-12 border-t border-nude/50 grid grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="mt-16 pt-12 border-t border-nude/50 grid grid-cols-2 gap-8 max-w-2xl mx-auto"
+          >
             <div>
               <h4 className="heading-serif text-sm mb-2">Lokasi</h4>
               <p className="text-soft text-sm">Jakarta, Indonesia</p>
@@ -413,7 +492,7 @@ const About = () => {
               <h4 className="heading-serif text-sm mb-2">Email</h4>
               <p className="text-sm">hello@swhs.com</p>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
@@ -679,6 +758,7 @@ export default function App() {
 
   return (
     <div className="selection:bg-gold/20 selection:text-gold">
+      <AudioPlayer />
       <Navbar onAdminClick={() => setView('admin')} isAdmin={view === 'admin'} />
       <main>
         <Hero />
