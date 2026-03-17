@@ -210,7 +210,7 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
     setError('');
     console.log("Attempting login with:", { username });
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/v1/login', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -250,7 +250,7 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
 
   const handleSave = async () => {
     try {
-      const res = await fetch('/api/portfolio', {
+      const res = await fetch('/api/v1/portfolio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, projects })
@@ -804,7 +804,7 @@ export default function App() {
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
-    fetch('/api/portfolio')
+    fetch('/api/v1/portfolio')
       .then(res => {
         if (!res.ok) return res.json().then(err => { throw new Error(err.message || 'Failed to fetch') });
         return res.json();

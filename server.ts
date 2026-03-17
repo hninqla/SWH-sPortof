@@ -60,15 +60,46 @@ function getSupabase() {
 const app = express();
 const PORT = 3000;
 
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(express.json());
 
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// --- API Routes (Daftarkan secara langsung agar aktif di Vercel) ---
+// Login route handling both GET and POST for debugging
+app.all(["/api/v1/login", "/api/v1/login/"], (req, res) => {
+  if (req.method === "POST") {
+    const { username, password } = req.body;
+    console.log("Login attempt:", { username });
 
-app.get("/api/portfolio", async (req, res) => {
+    const cleanUsername = username?.toString().trim().toLowerCase();
+    const cleanPassword = password?.toString().trim();
+
+    if (cleanUsername === "admin" && cleanPassword === "admin123") {
+      return res.json({ success: true });
+    } else {
+      return res.status(401).json({ success: false, message: "Username atau password salah" });
+    }
+  } else {
+    console.warn(`Method ${req.method} not allowed on /api/login`);
+    return res.status(405).json({ 
+      success: false, 
+      message: `Method ${req.method} tidak diizinkan. Gunakan POST.`,
+      receivedMethod: req.method
+    });
+  }
+});
+
+// --- API Routes ---
+
+app.get("/api/v1/portfolio", async (req, res) => {
   const supabase = getSupabase();
   if (!supabase) {
     const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
@@ -88,7 +119,7 @@ app.get("/api/portfolio", async (req, res) => {
   }
 });
 
-app.post("/api/portfolio", async (req, res) => {
+app.post("/api/v1/portfolio", async (req, res) => {
   const { username, password, projects } = req.body;
   // Login case-insensitive untuk username
   if (username?.toLowerCase() === "admin" && password === "admin123") {
@@ -107,35 +138,6 @@ app.post("/api/portfolio", async (req, res) => {
     }
   } else {
     res.status(401).json({ message: "Unauthorized" });
-  }
-});
-
-app.post("/api/login", (req, res) => {
-  const { username, password } = req.body;
-  
-  console.log("--- Login Request ---");
-  console.log("Headers:", req.headers);
-  console.log("Body:", req.body);
-
-  const cleanUsername = username?.toString().trim().toLowerCase();
-  const cleanPassword = password?.toString().trim();
-
-  if (!cleanUsername || !cleanPassword) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Username and password are required" 
-    });
-  }
-
-  if (cleanUsername === "admin" && cleanPassword === "admin123") {
-    console.log("Login SUCCESS for:", cleanUsername);
-    return res.json({ success: true });
-  } else {
-    console.log("Login FAILED for:", cleanUsername);
-    return res.status(401).json({ 
-      success: false, 
-      message: "Username atau password salah" 
-    });
   }
 });
 
