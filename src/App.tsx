@@ -31,23 +31,37 @@ const AudioPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
+  const handlePlay = () => {
+    if (audioRef.current && !isPlaying) {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        // Silent fail for autoplay blocks
+      });
+    }
+  };
+
   useEffect(() => {
-    const playAudio = () => {
-      if (audioRef.current && !isPlaying) {
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch(err => {
-          console.log("Autoplay blocked, waiting for interaction");
-        });
+    // Try to play on mount
+    handlePlay();
+
+    // Fallback for browsers that block autoplay
+    const interactionHandler = () => {
+      handlePlay();
+      // We don't remove immediately to ensure it tries again if first click didn't trigger it
+      if (audioRef.current && !audioRef.current.paused) {
+        window.removeEventListener('click', interactionHandler);
+        window.removeEventListener('touchstart', interactionHandler);
       }
     };
 
-    // Try to play on mount
-    playAudio();
+    window.addEventListener('click', interactionHandler);
+    window.addEventListener('touchstart', interactionHandler);
 
-    // Also try on first interaction
-    window.addEventListener('click', playAudio, { once: true });
-    return () => window.removeEventListener('click', playAudio);
+    return () => {
+      window.removeEventListener('click', interactionHandler);
+      window.removeEventListener('touchstart', interactionHandler);
+    };
   }, [isPlaying]);
 
   const toggleMute = () => {
@@ -58,19 +72,21 @@ const AudioPlayer = () => {
   };
 
   return (
-    <div className="fixed bottom-8 left-8 z-50">
+    <div className="fixed bottom-8 left-8 z-[9999]">
       <audio 
         ref={audioRef}
-        src="https://cdn.pixabay.com/audio/2022/02/22/audio_d0c6ff1bab.mp3" 
+        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" 
         loop 
+        preload="auto"
       />
       <motion.button
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={toggleMute}
-        className="w-12 h-12 bg-white/80 backdrop-blur-md border border-gold/30 rounded-full flex items-center justify-center text-gold shadow-lg"
+        className="w-14 h-14 bg-white border-2 border-gold rounded-full flex items-center justify-center text-gold shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+        title={isMuted ? "Unmute" : "Mute"}
       >
-        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
       </motion.button>
     </div>
   );

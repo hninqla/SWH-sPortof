@@ -108,11 +108,20 @@ app.post("/api/portfolio", async (req, res) => {
 
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt:", { username });
-  // Gunakan toLowerCase() agar "ADMIN" atau "admin" tetap bisa masuk
-  if (username?.toLowerCase() === "admin" && password === "admin123") {
+  console.log("Login attempt received:", { 
+    username, 
+    bodyKeys: Object.keys(req.body || {}),
+    contentType: req.headers['content-type']
+  });
+
+  const cleanUsername = username?.trim().toLowerCase();
+  const cleanPassword = password?.trim();
+
+  if (cleanUsername === "admin" && cleanPassword === "admin123") {
+    console.log("Login successful for:", cleanUsername);
     res.json({ success: true });
   } else {
+    console.log("Login failed for:", cleanUsername);
     res.status(401).json({ success: false });
   }
 });
