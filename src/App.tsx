@@ -75,9 +75,10 @@ const AudioPlayer = () => {
     <div className="fixed bottom-8 left-8 z-[9999]">
       <audio 
         ref={audioRef}
-        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" 
+        src="https://cdn.pixabay.com/audio/2022/05/27/audio_180873748b.mp3" 
         loop 
         preload="auto"
+        crossOrigin="anonymous"
       />
       <motion.button
         whileHover={{ scale: 1.1 }}
@@ -183,20 +184,33 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
+    console.log("Attempting login with:", { username });
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          username: username.trim(), 
+          password: password.trim() 
+        })
       });
-      if (res.ok) {
+      
+      const data = await res.json();
+      console.log("Login response:", res.status, data);
+
+      if (res.ok && data.success) {
         setIsLoggedIn(true);
         setError('');
       } else {
-        setError('Username atau password salah');
+        setError(data.message || 'Username atau password salah');
       }
     } catch (err) {
-      setError('Terjadi kesalahan koneksi');
+      console.error("Login error:", err);
+      setError('Terjadi kesalahan koneksi ke server');
     }
   };
 
@@ -426,9 +440,9 @@ const Hero = () => {
         >
           <motion.h2 
             initial={{ opacity: 0, letterSpacing: "0.5em" }}
-            whileInView={{ opacity: 1, letterSpacing: "0.3em" }}
+            whileInView={{ opacity: 1, letterSpacing: "0.2em" }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="text-gold uppercase text-sm mb-4 font-medium"
+            className="text-gold uppercase text-sm mb-10 font-medium"
           >
             Selamat Datang di
           </motion.h2>
@@ -436,10 +450,9 @@ const Hero = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
-            className="text-4xl md:text-6xl heading-serif mb-8 leading-tight"
+            className="text-4xl sm:text-6xl md:text-8xl heading-serif mb-8 leading-tight tracking-[-0.12em]"
           >
-            <span className="heading-script">P</span>ortofolio <br />
-            nya <span className="heading-script">K</span>ami
+            <span className="heading-script">P</span>ortofolio nya <span className="heading-script">K</span>ami
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}

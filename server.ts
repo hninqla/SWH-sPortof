@@ -108,21 +108,30 @@ app.post("/api/portfolio", async (req, res) => {
 
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt received:", { 
-    username, 
-    bodyKeys: Object.keys(req.body || {}),
-    contentType: req.headers['content-type']
-  });
+  
+  console.log("--- Login Request ---");
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
 
-  const cleanUsername = username?.trim().toLowerCase();
-  const cleanPassword = password?.trim();
+  const cleanUsername = username?.toString().trim().toLowerCase();
+  const cleanPassword = password?.toString().trim();
+
+  if (!cleanUsername || !cleanPassword) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Username and password are required" 
+    });
+  }
 
   if (cleanUsername === "admin" && cleanPassword === "admin123") {
-    console.log("Login successful for:", cleanUsername);
-    res.json({ success: true });
+    console.log("Login SUCCESS for:", cleanUsername);
+    return res.json({ success: true });
   } else {
-    console.log("Login failed for:", cleanUsername);
-    res.status(401).json({ success: false });
+    console.log("Login FAILED for:", cleanUsername);
+    return res.status(401).json({ 
+      success: false, 
+      message: "Username atau password salah" 
+    });
   }
 });
 
