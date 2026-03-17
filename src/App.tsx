@@ -186,6 +186,24 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+
+  const checkConnection = async () => {
+    setIsChecking(true);
+    try {
+      const res = await fetch('/api/health');
+      if (res.ok) {
+        const data = await res.json();
+        alert(`Koneksi server OK: ${data.timestamp}`);
+      } else {
+        alert(`Server merespons dengan status: ${res.status}`);
+      }
+    } catch (err) {
+      alert(`Gagal terhubung ke server: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -215,7 +233,7 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError('Terjadi kesalahan koneksi ke server');
+      setError(`Kesalahan koneksi: ${err instanceof Error ? err.message : 'Server tidak merespons'}`);
     }
   };
 
@@ -293,6 +311,14 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
             {error && <p className="text-red-400 text-xs text-center">{error}</p>}
             <button className="w-full py-4 bg-soft-brown text-white rounded-xl uppercase tracking-widest text-sm hover:bg-gold transition-all">
               Login
+            </button>
+            <button 
+              type="button"
+              onClick={checkConnection}
+              disabled={isChecking}
+              className="w-full py-2 text-soft-brown text-xs uppercase tracking-widest hover:text-gold transition-colors disabled:opacity-50"
+            >
+              {isChecking ? 'Mengecek...' : 'Cek Koneksi Server'}
             </button>
             <button 
               type="button"

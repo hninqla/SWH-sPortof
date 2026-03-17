@@ -62,6 +62,10 @@ const PORT = 3000;
 
 app.use(express.json());
 
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // --- API Routes (Daftarkan secara langsung agar aktif di Vercel) ---
 
 app.get("/api/portfolio", async (req, res) => {
@@ -157,10 +161,12 @@ async function setupVite() {
   }
 }
 
-// Jalankan server
-setupVite().then(() => {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Jalankan server segera
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  // Setup Vite setelah server mulai mendengarkan
+  setupVite().catch(err => {
+    console.error("Vite setup failed:", err);
   });
 });
 
