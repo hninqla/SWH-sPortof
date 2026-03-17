@@ -157,13 +157,11 @@ async function setupVite() {
   }
 }
 
-// Hanya jalankan listen jika tidak di Vercel (mode dev)
-if (process.env.NODE_ENV !== "production") {
-  setupVite().then(() => {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
+// Jalankan server
+setupVite().then(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
-}
+});
 
 export default app;

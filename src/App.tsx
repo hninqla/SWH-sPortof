@@ -32,42 +32,48 @@ const AudioPlayer = () => {
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
   const handlePlay = () => {
-    if (audioRef.current && !isPlaying) {
+    if (audioRef.current) {
       audioRef.current.play().then(() => {
         setIsPlaying(true);
-      }).catch(err => {
-        // Silent fail for autoplay blocks
+      }).catch(() => {
+        // Autoplay was blocked, which is expected. 
+        // We rely on user interaction listeners below.
       });
     }
   };
 
   useEffect(() => {
-    // Try to play on mount
-    handlePlay();
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    // Fallback for browsers that block autoplay
+    // We don't call handlePlay() here anymore to avoid the console error.
+    // Browsers require a user gesture (click/tap) to start audio.
+
     const interactionHandler = () => {
-      handlePlay();
-      // We don't remove immediately to ensure it tries again if first click didn't trigger it
-      if (audioRef.current && !audioRef.current.paused) {
-        window.removeEventListener('click', interactionHandler);
-        window.removeEventListener('touchstart', interactionHandler);
+      if (audio.paused) {
+        handlePlay();
       }
     };
 
-    window.addEventListener('click', interactionHandler);
-    window.addEventListener('touchstart', interactionHandler);
+    window.addEventListener('click', interactionHandler, { once: true });
+    window.addEventListener('touchstart', interactionHandler, { once: true });
 
     return () => {
       window.removeEventListener('click', interactionHandler);
       window.removeEventListener('touchstart', interactionHandler);
     };
-  }, [isPlaying]);
+  }, []);
 
   const toggleMute = () => {
     if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      const newMuteState = !isMuted;
+      audioRef.current.muted = newMuteState;
+      setIsMuted(newMuteState);
+      
+      // If we're unmuting and it's not playing, try to play
+      if (!newMuteState && audioRef.current.paused) {
+        handlePlay();
+      }
     }
   };
 
@@ -75,10 +81,9 @@ const AudioPlayer = () => {
     <div className="fixed bottom-8 left-8 z-[9999]">
       <audio 
         ref={audioRef}
-        src="https://cdn.pixabay.com/audio/2022/05/27/audio_180873748b.mp3" 
+        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3" 
         loop 
         preload="auto"
-        crossOrigin="anonymous"
       />
       <motion.button
         whileHover={{ scale: 1.1 }}
