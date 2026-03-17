@@ -68,77 +68,9 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Health check
+// --- Health Check ---
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// Login route handling both GET and POST for debugging
-app.all(["/api/v1/login", "/api/v1/login/"], (req, res) => {
-  if (req.method === "POST") {
-    const { username, password } = req.body;
-    console.log("Login attempt:", { username });
-
-    const cleanUsername = username?.toString().trim().toLowerCase();
-    const cleanPassword = password?.toString().trim();
-
-    if (cleanUsername === "admin" && cleanPassword === "admin123") {
-      return res.json({ success: true });
-    } else {
-      return res.status(401).json({ success: false, message: "Username atau password salah" });
-    }
-  } else {
-    console.warn(`Method ${req.method} not allowed on /api/login`);
-    return res.status(405).json({ 
-      success: false, 
-      message: `Method ${req.method} tidak diizinkan. Gunakan POST.`,
-      receivedMethod: req.method
-    });
-  }
-});
-
-// --- API Routes ---
-
-app.get("/api/v1/portfolio", async (req, res) => {
-  const supabase = getSupabase();
-  if (!supabase) {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    return res.json(data);
-  }
-  try {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    res.json(data || []);
-  } catch (err: any) {
-    console.error("Supabase fetch error:", err.message);
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    res.json(data);
-  }
-});
-
-app.post("/api/v1/portfolio", async (req, res) => {
-  const { username, password, projects } = req.body;
-  // Login case-insensitive untuk username
-  if (username?.toLowerCase() === "admin" && password === "admin123") {
-    const supabase = getSupabase();
-    if (!supabase) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(projects, null, 2));
-      return res.json({ message: "Success (Saved Locally)" });
-    }
-    try {
-      await supabase.from("projects").delete().neq("id", 0);
-      const projectsToInsert = projects.map(({ id, created_at, ...rest }: any) => rest);
-      await supabase.from("projects").insert(projectsToInsert);
-      res.json({ message: "Success (Saved to Supabase)" });
-    } catch (err: any) {
-      res.status(500).json({ message: "Failed to save to Supabase" });
-    }
-  } else {
-    res.status(401).json({ message: "Unauthorized" });
-  }
 });
 
 // --- Vite / Static Files Setup ---

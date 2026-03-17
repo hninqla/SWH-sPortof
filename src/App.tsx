@@ -23,6 +23,51 @@ import {
   Volume2,
   VolumeX
 } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// --- Supabase Configuration ---
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const getSupabase = () => {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return null;
+};
+
+const INITIAL_PROJECTS = [
+  {
+    id: 1,
+    title: "E-Commerce Platform",
+    description: "A full-stack e-commerce solution built with React and Node.js.",
+    image: "https://images.unsplash.com/photo-1557821552-17105176677c?auto=format&fit=crop&q=80&w=1000",
+    tags: ["React", "Node.js", "MongoDB"],
+    link: "#",
+    github: "#",
+    category: "Web App"
+  },
+  {
+    id: 2,
+    title: "AI Image Generator",
+    description: "Creative tool that generates unique artwork using neural networks.",
+    image: "https://images.unsplash.com/photo-1547953580-c19955f896e7?auto=format&fit=crop&q=80&w=1000",
+    tags: ["Python", "PyTorch", "React"],
+    link: "#",
+    github: "#",
+    category: "AI/ML"
+  },
+  {
+    id: 3,
+    title: "Crypto Dashboard",
+    description: "Real-time cryptocurrency tracking and analytics platform.",
+    image: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&q=80&w=1000",
+    tags: ["TypeScript", "Next.js", "Tailwind"],
+    link: "#",
+    github: "#",
+    category: "Fintech"
+  }
+];
 
 // --- Components ---
 
@@ -208,60 +253,36 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    console.log("Attempting login with:", { username });
-    try {
-      const res = await fetch('/api/v1/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ 
-          username: username.trim(), 
-          password: password.trim() 
-        })
-      });
-      
-      const text = await res.text();
-      console.log("Raw login response:", res.status, text);
-
-      if (!text) {
-        throw new Error(`Server mengirim respon kosong (Status: ${res.status})`);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        throw new Error(`Respon bukan JSON: ${text.substring(0, 100)}`);
-      }
-
-      if (res.ok && data.success) {
-        setIsLoggedIn(true);
-        setError('');
-      } else {
-        setError(data.message || 'Username atau password salah');
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(`Kesalahan koneksi: ${err instanceof Error ? err.message : 'Server tidak merespons'}`);
+    
+    // Client-side login logic for simplicity and "online" compatibility
+    if (username.trim().toLowerCase() === "admin" && password.trim() === "admin123") {
+      setIsLoggedIn(true);
+      setError('');
+    } else {
+      setError("Username atau password salah");
     }
   };
 
   const handleSave = async () => {
     try {
-      const res = await fetch('/api/v1/portfolio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, projects })
-      });
-      if (res.ok) {
-        alert('Data berhasil disimpan');
+      const supabase = getSupabase();
+      if (supabase) {
+        const { error } = await supabase
+          .from('portfolio')
+          .upsert({ 
+            id: 'main_portfolio', 
+            projects: projects,
+            updated_at: new Date().toISOString()
+          });
+        if (error) throw error;
       } else {
-        alert('Gagal menyimpan data');
+        // Local storage fallback for "online" without Supabase
+        localStorage.setItem('portfolio_data', JSON.stringify(projects));
       }
+      alert('Portfolio berhasil disimpan!');
     } catch (err) {
-      alert('Terjadi kesalahan koneksi');
+      console.error("Save Error:", err);
+      alert(`Gagal menyimpan: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -804,23 +825,36 @@ export default function App() {
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
-    fetch('/api/v1/portfolio')
-      .then(res => {
-        if (!res.ok) return res.json().then(err => { throw new Error(err.message || 'Failed to fetch') });
-        return res.json();
-      })
-      .then(data => {
-        if (Array.isArray(data)) {
-          setProjects(data);
-        } else {
-          console.error('Data is not an array:', data);
-          setProjects([]);
+    const loadData = async () => {
+      try {
+        const supabase = getSupabase();
+        if (supabase) {
+          const { data, error } = await supabase
+            .from('portfolio')
+            .select('projects')
+            .eq('id', 'main_portfolio')
+            .single();
+          
+          if (data && data.projects) {
+            setProjects(data.projects);
+            return;
+          }
         }
-      })
-      .catch(err => {
-        console.error('Failed to fetch portfolio data', err);
-        setProjects([]);
-      });
+        
+        // Fallback to localStorage or initial data
+        const localData = localStorage.getItem('portfolio_data');
+        if (localData) {
+          setProjects(JSON.parse(localData));
+        } else {
+          setProjects(INITIAL_PROJECTS);
+        }
+      } catch (err) {
+        console.error("Fetch Error:", err);
+        setProjects(INITIAL_PROJECTS);
+      }
+    };
+
+    loadData();
   }, []);
 
   if (view === 'admin') {
