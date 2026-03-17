@@ -141,7 +141,7 @@ app.post("/api/login", (req, res) => {
 
 // --- Vite / Static Files Setup ---
 
-async function setupVite() {
+async function setupVite(app: express.Application) {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -149,8 +149,6 @@ async function setupVite() {
     });
     app.use(vite.middlewares);
   } else {
-    // Di Vercel, file statis biasanya ditangani oleh Vercel Edge, 
-    // tapi kita tetap siapkan fallback di sini.
     const distPath = path.join(process.cwd(), "dist");
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
@@ -161,13 +159,19 @@ async function setupVite() {
   }
 }
 
-// Jalankan server segera
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  // Setup Vite setelah server mulai mendengarkan
-  setupVite().catch(err => {
-    console.error("Vite setup failed:", err);
+// Error handler global
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Global Error:", err);
+  res.status(500).json({ success: false, message: "Internal Server Error" });
+});
+
+// Jalankan server
+setupVite(app).then(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
+}).catch(err => {
+  console.error("Failed to start server:", err);
 });
 
 export default app;

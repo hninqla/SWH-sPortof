@@ -222,8 +222,19 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
         })
       });
       
-      const data = await res.json();
-      console.log("Login response:", res.status, data);
+      const text = await res.text();
+      console.log("Raw login response:", res.status, text);
+
+      if (!text) {
+        throw new Error(`Server mengirim respon kosong (Status: ${res.status})`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Respon bukan JSON: ${text.substring(0, 100)}`);
+      }
 
       if (res.ok && data.success) {
         setIsLoggedIn(true);
