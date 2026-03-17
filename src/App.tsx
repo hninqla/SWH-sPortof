@@ -21,13 +21,15 @@ import {
   LogOut,
   Settings,
   Volume2,
-  VolumeX
+  VolumeX,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // --- Supabase Configuration ---
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://ezwljjzxhdxvuauvpffs.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_0zHO228yOVFjmK44LiVSVg_I2CZgd0p";
 
 const getSupabase = () => {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
@@ -368,8 +370,21 @@ const AdminDashboard = ({ projects, setProjects, onLogout }) => {
   return (
     <div className="min-h-screen bg-ivory p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
-          <h2 className="text-4xl heading-serif">Dashboard Admin</h2>
+        <div className="flex justify-between items-start mb-12">
+          <div>
+            <h2 className="text-4xl heading-serif mb-2">Dashboard Admin</h2>
+            <div className="flex items-center gap-2">
+              {getSupabase() ? (
+                <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                  <CheckCircle2 size={10} /> Database Terhubung (Shared Online)
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                  <AlertCircle size={10} /> Penyimpanan Lokal (Hanya Anda yang Lihat)
+                </span>
+              )}
+            </div>
+          </div>
           <div className="flex space-x-4">
             <button 
               onClick={handleSave}
